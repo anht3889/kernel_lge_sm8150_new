@@ -45,11 +45,11 @@ static struct i2c_settings_list*
 	if (size * sizeof(struct cam_sensor_i2c_reg_array) <= PAGE_SIZE)
 	{
 		tmp->i2c_settings.reg_setting = (struct cam_sensor_i2c_reg_array *)
-		vzalloc(size * sizeof(struct cam_sensor_i2c_reg_array));
+		vzalloc(array_size(size, sizeof(struct cam_sensor_i2c_reg_array)));
 	}
 	else {
 		tmp->i2c_settings.reg_setting = (struct cam_sensor_i2c_reg_array *)
-		vzalloc(size * sizeof(struct cam_sensor_i2c_reg_array));
+		vzalloc(array_size(size, sizeof(struct cam_sensor_i2c_reg_array)));
 	}
 #endif
 /* LGE_CHANGE_E, page allocation fail because GD1 sensor is trying to allocate about 105KB. sungmin.cho@lge.com 2019-04-29 */
