@@ -6264,7 +6264,6 @@ int cgroup_bpf_detach(struct cgroup *cgrp, struct bpf_prog *prog,
 #endif /* CONFIG_CGROUP_BPF */
 
 #ifdef CONFIG_SYSFS
-
 static u64 power_of_ten(int power)
 {
 	u64 v = 1;
@@ -6371,4 +6370,5 @@ static int __init cgroup_sysfs_init(void)
 	return sysfs_create_group(kernel_kobj, &cgroup_sysfs_attr_group);
 }
 subsys_initcall(cgroup_sysfs_init);
+
 #endif /* CONFIG_SYSFS */
