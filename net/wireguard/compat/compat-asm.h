@@ -51,11 +51,6 @@
 #undef pull
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 4, 76) && !defined(ISRHEL8) && !defined(SYM_FUNC_START)
-#define SYM_FUNC_START ENTRY
-#define SYM_FUNC_END ENDPROC
-#endif
-
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 5, 0)
 #define blake2s_compress_ssse3 zinc_blake2s_compress_ssse3
 #define blake2s_compress_avx512 zinc_blake2s_compress_avx512
