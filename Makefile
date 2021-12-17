@@ -496,8 +496,10 @@ ifdef CONFIG_POLLY_CLANG
 KBUILD_CFLAGS += -mllvm -polly \
 		   -mllvm -polly-run-dce \
 		   -mllvm -polly-run-inliner \
+                   -mllvm -polly-isl-arg=--no-schedule-serialize-sccs \
 		   -mllvm -polly-opt-fusion=max \
 		   -mllvm -polly-ast-use-context \
+                   -mllvm -polly-detect-keep-going \
 		   -mllvm -polly-vectorizer=stripmine \
 		   -mllvm -polly-invariant-load-hoisting
 endif
@@ -751,8 +753,8 @@ KBUILD_CFLAGS   += -DNOTRACE
 endif
 
 ifdef CONFIG_INLINE_OPTIMIZATION
-KBUILD_CFLAGS	+= -mllvm -inline-threshold=12000
-KBUILD_CFLAGS	+= -mllvm -inlinehint-threshold=9000
+KBUILD_CFLAGS	+= -mllvm -inline-threshold=2500
+KBUILD_CFLAGS	+= -mllvm -inlinehint-threshold=1500
 endif
 
 # Tell gcc to never replace conditional load with a non-conditional one
