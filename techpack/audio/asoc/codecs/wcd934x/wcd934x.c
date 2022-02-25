@@ -8836,7 +8836,8 @@ static struct snd_soc_dai_driver tavil_slim_dai[] = {
 		.id = AIF1_PB,
 		.playback = {
 			.stream_name = "AIF1 Playback",
-			.rates = WCD934X_RATES_MASK | WCD934X_FRAC_RATES_MASK,
+			.rates = WCD934X_RATES_MASK | WCD934X_FRAC_RATES_MASK |
+					 SNDRV_PCM_RATE_384000,
 			.formats = WCD934X_FORMATS_S16_S24_S32_LE,
 			.rate_min = 8000,
 			.rate_max = 384000,
@@ -8864,7 +8865,8 @@ static struct snd_soc_dai_driver tavil_slim_dai[] = {
 		.id = AIF2_PB,
 		.playback = {
 			.stream_name = "AIF2 Playback",
-			.rates = WCD934X_RATES_MASK | WCD934X_FRAC_RATES_MASK,
+			.rates = WCD934X_RATES_MASK | WCD934X_FRAC_RATES_MASK |
+					 SNDRV_PCM_RATE_384000,
 			.formats = WCD934X_FORMATS_S16_S24_S32_LE,
 			.rate_min = 8000,
 			.rate_max = 384000,
@@ -8892,7 +8894,8 @@ static struct snd_soc_dai_driver tavil_slim_dai[] = {
 		.id = AIF3_PB,
 		.playback = {
 			.stream_name = "AIF3 Playback",
-			.rates = WCD934X_RATES_MASK | WCD934X_FRAC_RATES_MASK,
+			.rates = WCD934X_RATES_MASK | WCD934X_FRAC_RATES_MASK |
+					 SNDRV_PCM_RATE_384000,
 			.formats = WCD934X_FORMATS_S16_S24_S32_LE,
 			.rate_min = 8000,
 			.rate_max = 384000,
@@ -8920,7 +8923,8 @@ static struct snd_soc_dai_driver tavil_slim_dai[] = {
 		.id = AIF4_PB,
 		.playback = {
 			.stream_name = "AIF4 Playback",
-			.rates = WCD934X_RATES_MASK | WCD934X_FRAC_RATES_MASK,
+			.rates = WCD934X_RATES_MASK | WCD934X_FRAC_RATES_MASK |
+					 SNDRV_PCM_RATE_384000,
 			.formats = WCD934X_FORMATS_S16_S24_S32_LE,
 			.rate_min = 8000,
 			.rate_max = 384000,
