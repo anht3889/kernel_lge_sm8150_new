@@ -900,3 +900,10 @@ config HSWAP
 		lowmemorykiller and direct reclaim module use low priority swap file.
 		lowmemorykiller reclaims pages of victim process instead kill the process.
 
+config LRU_GEN
+	bool "Multi-Gen LRU"
+	depends on MMU
+	# the following options can use up the spare bits in page flags
+	depends on !MAXSMP && (64BIT || !SPARSEMEM || SPARSEMEM_VMEMMAP)
+	help
+	  A high performance LRU implementation to overcommit memory.
