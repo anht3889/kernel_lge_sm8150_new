@@ -152,12 +152,12 @@ void dsi_convert_to_drm_mode(const struct dsi_display_mode *dsi_mode,
 		drm_mode->flags |= DRM_MODE_FLAG_CMD_MODE_PANEL;
 
 	/* set mode name */
+#if IS_ENABLED(CONFIG_LGE_DISPLAY_COMMON)
 	snprintf(drm_mode->name, DRM_DISPLAY_MODE_LEN, "%dx%dx%dx%d",
 			drm_mode->hdisplay, drm_mode->vdisplay,
-#if IS_ENABLED(CONFIG_LGE_DISPLAY_COMMON)
 			dsi_mode->timing.refresh_rate_div?(drm_mode->vrefresh/dsi_mode->timing.refresh_rate_div):(drm_mode->vrefresh), drm_mode->clock);
 #else
-			drm_mode->vrefresh, drm_mode->clock);
+	*drm_mode->name = '\0';
 #endif
 }
 
