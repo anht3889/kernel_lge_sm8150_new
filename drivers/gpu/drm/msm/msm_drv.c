@@ -49,7 +49,6 @@
 #include "msm_kms.h"
 #include "sde_wb.h"
 #include "sde_dbg.h"
-#include <drm/drm_client.h>
 
 /*
  * MSM driver version:
@@ -62,6 +61,10 @@
 #define MSM_VERSION_PATCHLEVEL	0
 
 static DEFINE_MUTEX(msm_release_lock);
+
+#if IS_ENABLED(CONFIG_LGE_DISPLAY_COMMON)
+extern char* get_ddic_name(void);
+#endif
 
 static void msm_fb_output_poll_changed(struct drm_device *dev)
 {
@@ -312,7 +315,6 @@ static int msm_drm_uninit(struct device *dev)
 	drm_mode_config_cleanup(ddev);
 
 	if (priv->registered) {
-		drm_client_dev_unregister(ddev);
 		drm_dev_unregister(ddev);
 		priv->registered = false;
 	}
@@ -983,6 +985,13 @@ static void msm_lastclose(struct drm_device *dev)
 	if (kms && kms->funcs && kms->funcs->check_for_splash
 		&& kms->funcs->check_for_splash(kms))
 		return;
+#if IS_ENABLED(CONFIG_LGE_DISPLAY_COMMON)
+	/* To prevent device from shutdown before device is probed */
+	if(!strcmp(get_ddic_name(), "dsi_sim_cmd")) {
+		pr_err("[Display][%s] To avoid crash with no panel \n", __func__);
+		return;
+	}
+#endif
 
 	/*
 	 * clean up vblank disable immediately as this is the last close.
@@ -1665,7 +1674,7 @@ static int msm_ioctl_power_ctrl(struct drm_device *dev, void *data,
 			ctx->enable_refcnt = old_cnt;
 	}
 
-	pr_debug("pid %d enable %d, refcnt %d, vote_req %d\n",
+	pr_info("pid %d enable %d, refcnt %d, vote_req %d\n",
 			current->pid, power_ctrl->enable, ctx->enable_refcnt,
 			vote_req);
 	SDE_EVT32(current->pid, power_ctrl->enable, ctx->enable_refcnt,
