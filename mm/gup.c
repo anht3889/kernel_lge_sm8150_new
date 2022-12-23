@@ -20,6 +20,13 @@
 
 #include "internal.h"
 
+#ifdef CONFIG_CMA_PINPAGE_MIGRATION
+#include <linux/migrate.h>
+#include <linux/mm_inline.h>
+#include <linux/mmu_notifier.h>
+#include <asm/tlbflush.h>
+#endif
+
 static struct page *no_page_table(struct vm_area_struct *vma,
 		unsigned int flags)
 {
@@ -60,14 +67,95 @@ static int follow_pfn_pte(struct vm_area_struct *vma, unsigned long address,
 	return -EEXIST;
 }
 
+#ifdef CONFIG_CMA_PINPAGE_MIGRATION
+static struct page *__alloc_nonmovable_userpage(struct page *page,
+				unsigned long private, int **result)
+{
+	return alloc_page(GFP_HIGHUSER);
+}
+
+static bool __need_migrate_cma_page(struct page *page,
+				struct vm_area_struct *vma,
+				unsigned long start, unsigned int flags)
+{
+	if (!(flags & FOLL_GET))
+		return false;
+
+	if (!is_cma_pageblock(page))
+		return false;
+
+	if ((vma->vm_flags & VM_STACK_INCOMPLETE_SETUP) ==
+					VM_STACK_INCOMPLETE_SETUP)
+		return false;
+
+	if (!(flags & FOLL_CMA))
+		return false;
+
+	migrate_prep_local();
+
+	if (!PageLRU(page))
+		return false;
+
+	return true;
+}
+
+static int __migrate_cma_pinpage(struct page *page, struct vm_area_struct *vma)
+{
+	struct zone *zone = page_zone(page);
+	struct list_head migratepages;
+	struct lruvec *lruvec;
+	int tries = 0;
+	int ret = 0;
+
+	INIT_LIST_HEAD(&migratepages);
+
+	if (__isolate_lru_page(page, 0) != 0) {
+		pr_warn("%s: failed to isolate lru page\n", __func__);
+		dump_page(page, "failed to isolate lru page");
+		return -EFAULT;
+	} else {
+		spin_lock_irq(&zone->zone_pgdat->lru_lock);
+		lruvec = mem_cgroup_page_lruvec(page, zone->zone_pgdat);
+		del_page_from_lru_list(page, lruvec, page_lru(page));
+		spin_unlock_irq(&zone->zone_pgdat->lru_lock);
+	}
+
+	list_add(&page->lru, &migratepages);
+	inc_zone_page_state(page, NR_ISOLATED_ANON + page_is_file_cache(page));
+
+	while (!list_empty(&migratepages) && tries++ < 5) {
+		ret = migrate_pages(&migratepages,
+			__alloc_nonmovable_userpage, NULL, 0, MIGRATE_SYNC, MR_CMA);
+	}
+
+	if (ret < 0) {
+		putback_movable_pages(&migratepages);
+		pr_err("%s: migration failed %p[%#lx]\n", __func__,
+					page, page_to_pfn(page));
+		return -EFAULT;
+	}
+
+	return 0;
+}
+#endif
+
 /*
- * FOLL_FORCE can write to even unwritable pte's, but only
- * after we've gone through a COW cycle and they are dirty.
+ * FOLL_FORCE or a forced COW break can write even to unwritable pte's,
+ * but only after we've gone through a COW cycle and they are dirty.
  */
 static inline bool can_follow_write_pte(pte_t pte, unsigned int flags)
 {
-	return pte_write(pte) ||
-		((flags & FOLL_FORCE) && (flags & FOLL_COW) && pte_dirty(pte));
+	return pte_write(pte) || ((flags & FOLL_COW) && pte_dirty(pte));
+}
+
+/*
+ * A (separate) COW fault might break the page the other way and
+ * get_user_pages() would return the page from what is now the wrong
+ * VM. So we need to force a COW break at GUP time even for reads.
+ */
+static inline bool should_force_cow_break(struct vm_area_struct *vma, unsigned int flags)
+{
+	return is_cow_mapping(vma->vm_flags) && (flags & FOLL_GET);
 }
 
 static struct page *follow_page_pte(struct vm_area_struct *vma,
@@ -151,6 +239,30 @@ retry:
 			return ERR_PTR(ret);
 		goto retry;
 	}
+
+#ifdef CONFIG_CMA_PINPAGE_MIGRATION
+	if (__need_migrate_cma_page(page, vma, address, flags)) {
+		pte_unmap_unlock(ptep, ptl);
+		if (__migrate_cma_pinpage(page, vma)) {
+			ptep = pte_offset_map_lock(mm, pmd, address, &ptl);
+		} else {
+			struct page *old_page = page;
+
+			migration_entry_wait(mm, pmd, address);
+			ptep = pte_offset_map_lock(mm, pmd, address, &ptl);
+			update_mmu_cache(vma, address, ptep);
+			pte = *ptep;
+			set_pte_at_notify(mm, address, ptep, pte);
+			page = vm_normal_page(vma, address, pte);
+			BUG_ON(!page);
+
+			pr_debug("cma: cma page %p[%#lx] migrated to new "
+					"page %p[%#lx]\n", old_page,
+					page_to_pfn(old_page),
+					page, page_to_pfn(page));
+		}
+	}
+#endif
 
 	if (flags & FOLL_GET) {
 		if (unlikely(!try_get_page(page))) {
@@ -696,12 +808,18 @@ static long __get_user_pages(struct task_struct *tsk, struct mm_struct *mm,
 			if (!vma || check_vma_flags(vma, gup_flags))
 				return i ? : -EFAULT;
 			if (is_vm_hugetlb_page(vma)) {
+				if (should_force_cow_break(vma, foll_flags))
+					foll_flags |= FOLL_WRITE;
 				i = follow_hugetlb_page(mm, vma, pages, vmas,
 						&start, &nr_pages, i,
-						gup_flags, nonblocking);
+						foll_flags, nonblocking);
 				continue;
 			}
 		}
+
+		if (should_force_cow_break(vma, foll_flags))
+			foll_flags |= FOLL_WRITE;
+
 retry:
 		/*
 		 * If we have a pending SIGKILL, don't keep faulting pages and
@@ -951,6 +1069,25 @@ static __always_inline long __get_user_pages_locked(struct task_struct *tsk,
 	}
 	return pages_done;
 }
+
+#ifdef CONFIG_CMA_PINPAGE_MIGRATION
+long get_user_pages_foll_cma(struct task_struct *tsk, struct mm_struct *mm,
+		unsigned long start, unsigned long nr_pages,
+		int write, int force, struct page **pages,
+		struct vm_area_struct **vmas)
+{
+   unsigned int flags = FOLL_TOUCH;
+
+   if (write)
+       flags |= FOLL_WRITE;
+   if (force)
+       flags |= FOLL_FORCE;
+
+	return __get_user_pages_locked(tsk, mm, start, nr_pages,
+			pages, vmas, NULL, false, flags|FOLL_CMA);
+}
+#endif
+
 
 /*
  * We can leverage the VM_FAULT_RETRY functionality in the page fault
@@ -1800,6 +1937,10 @@ bool gup_fast_permitted(unsigned long start, int nr_pages, int write)
 /*
  * Like get_user_pages_fast() except it's IRQ-safe in that it won't fall back to
  * the regular GUP. It will only return non-negative values.
+ *
+ * Careful, careful! COW breaking can go either way, so a non-write
+ * access can get ambiguous page results. If you call this function without
+ * 'write' set, you'd better be sure that you're ok with that ambiguity.
  */
 int __get_user_pages_fast(unsigned long start, int nr_pages, int write,
 			  struct page **pages)
@@ -1827,6 +1968,12 @@ int __get_user_pages_fast(unsigned long start, int nr_pages, int write,
 	 *
 	 * We do not adopt an rcu_read_lock(.) here as we also want to
 	 * block IPIs that come from THPs splitting.
+	 *
+	 * NOTE! We allow read-only gup_fast() here, but you'd better be
+	 * careful about possible COW pages. You'll get _a_ COW page, but
+	 * not necessarily the one you intended to get depending on what
+	 * COW event happens after this. COW may break the page copy in a
+	 * random direction.
 	 */
 
 	if (gup_fast_permitted(start, nr_pages, write)) {
@@ -1872,9 +2019,16 @@ int get_user_pages_fast(unsigned long start, int nr_pages, int write,
 					(void __user *)start, len)))
 		return -EFAULT;
 
+	/*
+	 * The FAST_GUP case requires FOLL_WRITE even for pure reads,
+	 * because get_user_pages() may need to cause an early COW in
+	 * order to avoid confusing the normal COW routines. So only
+	 * targets that are already writable are safe to do by just
+	 * looking at the page tables.
+	 */
 	if (gup_fast_permitted(start, nr_pages, write)) {
 		local_irq_disable();
-		gup_pgd_range(addr, end, write, pages, &nr);
+		gup_pgd_range(addr, end, 1, pages, &nr);
 		local_irq_enable();
 		ret = nr;
 	}
