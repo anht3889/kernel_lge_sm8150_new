@@ -502,7 +502,6 @@ int mmc_retune(struct mmc_host *host)
 
 		if (host->ops->prepare_hs400_tuning)
 			host->ops->prepare_hs400_tuning(host, &host->ios);
-	}
 
 	/*
 	 * Timing should be adjusted to the HS400 target
@@ -513,6 +512,7 @@ int mmc_retune(struct mmc_host *host)
 	if (host->card->mmc_avail_type & EXT_CSD_CARD_TYPE_HS400 &&
 		host->ios.bus_width == MMC_BUS_WIDTH_8)
 		mmc_set_timing(host, MMC_TIMING_MMC_HS400);
+	}
 
 	err = mmc_execute_tuning(host->card);
 	if (err)
@@ -1093,3 +1093,4 @@ void mmc_free_host(struct mmc_host *host)
 }
 
 EXPORT_SYMBOL(mmc_free_host);
+
