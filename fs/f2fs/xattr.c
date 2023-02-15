@@ -815,3 +815,4 @@ void f2fs_destroy_xattr_caches(struct f2fs_sb_info *sbi)
 {
 	kmem_cache_destroy(sbi->inline_xattr_slab);
 }
+
