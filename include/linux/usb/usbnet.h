@@ -87,6 +87,8 @@ struct usbnet {
 
 	void			*ipc_log_ctxt;
 	int			netdev_id;
+	u32			rx_speed;	/* in bps - NOT Mbps */
+	u32			tx_speed;	/* in bps - NOT Mbps */
 };
 
 static inline struct usb_driver *driver_of(struct usb_interface *intf)
@@ -291,3 +293,4 @@ extern void usbnet_get_stats64(struct net_device *dev,
 			       struct rtnl_link_stats64 *stats);
 
 #endif /* __LINUX_USB_USBNET_H */
+
