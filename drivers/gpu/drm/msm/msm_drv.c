@@ -2223,3 +2223,4 @@ module_exit(msm_drm_unregister);
 MODULE_AUTHOR("Rob Clark <robdclark@gmail.com");
 MODULE_DESCRIPTION("MSM DRM Driver");
 MODULE_LICENSE("GPL");
+

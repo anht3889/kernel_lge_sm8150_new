@@ -2802,3 +2802,4 @@ static struct platform_driver ufs_qcom_pltform = {
 module_platform_driver(ufs_qcom_pltform);
 
 MODULE_LICENSE("GPL v2");
+
