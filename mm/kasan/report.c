@@ -94,8 +94,7 @@ static void end_report(unsigned long *flags)
 #ifdef CONFIG_MACH_LGE
 	BUG_ON(1);
 #else
-	if (panic_on_warn)
-		panic("panic_on_warn set ...\n");
+	check_panic_on_warn("KASAN");
 #endif
 	kasan_enable_current();
 }
@@ -339,3 +338,4 @@ void __kasan_report(unsigned long addr, size_t size, bool is_write, unsigned lon
 
 	end_report(&flags);
 }
+

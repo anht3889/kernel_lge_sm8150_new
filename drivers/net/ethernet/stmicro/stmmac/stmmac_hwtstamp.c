@@ -204,3 +204,4 @@ const struct stmmac_hwtimestamp stmmac_ptp = {
 	.adjust_systime = stmmac_adjust_systime,
 	.get_systime = stmmac_get_systime,
 };
+
