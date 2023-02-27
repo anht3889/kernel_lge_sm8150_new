@@ -612,7 +612,7 @@ static u32 truncate_msg(u16 *text_len, u16 *trunc_msg_len,
 #ifdef CONFIG_PRINTK_TIMESPEC
 static void inline save_time(struct printk_log *msg)
 {
-	msg->time = __current_kernel_time();
+	msg->time = current_kernel_time();
 	time_to_tm(msg->time.tv_sec, sys_tz.tz_minuteswest * 60 * (-1),
 			&msg->tmresult);
 }
@@ -1954,7 +1954,7 @@ static bool cont_add(int facility, int level, enum log_flags flags, const char *
 		cont.owner = current;
 		cont.ts_nsec = local_clock();
 #ifdef CONFIG_PRINTK_TIMESPEC
-		cont.time = __current_kernel_time();
+		cont.time = current_kernel_time();
 		time_to_tm(cont.time.tv_sec, sys_tz.tz_minuteswest * 60 * (-1),
 				&cont.tmresult);
 #endif

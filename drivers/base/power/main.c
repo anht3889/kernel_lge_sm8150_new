@@ -533,7 +533,7 @@ static void dpm_show_time(ktime_t starttime, pm_message_t state, int error,
 	}
 
 	if (info == NULL && state.event == PM_EVENT_RESUME) {
-		time = __current_kernel_time();
+		time = current_kernel_time();
 		time_to_tm(time.tv_sec, sys_tz.tz_minuteswest * 60 * (-1),
 				&tmresult);
 		snprintf(resume_time,
