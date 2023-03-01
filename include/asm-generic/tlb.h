@@ -181,7 +181,6 @@ struct mmu_table_batch {
 
 extern void tlb_remove_table(struct mmu_gather *tlb, void *table);
 
-void tlb_remove_table_sync_one(void);
 #else /* !CONFIG_MMU_GATHER_HAVE_TABLE_FREE */
 
 /*
@@ -202,8 +201,6 @@ void tlb_remove_table_sync_one(void);
 #endif
 
 #else
-
-static inline void tlb_remove_table_sync_one(void) { }
 
 #ifdef tlb_needs_table_invalidate
 #error tlb_needs_table_invalidate() requires MMU_GATHER_RCU_TABLE_FREE
