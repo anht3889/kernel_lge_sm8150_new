@@ -780,8 +780,9 @@ KBUILD_CFLAGS   += -DNOTRACE
 endif
 
 ifdef CONFIG_INLINE_OPTIMIZATION
-KBUILD_CFLAGS	+= -mllvm -inline-threshold=2500
-KBUILD_CFLAGS	+= -mllvm -inlinehint-threshold=1500
+KBUILD_CFLAGS	+= -mllvm -inline-threshold=2000
+KBUILD_CFLAGS	+= -mllvm -inlinehint-threshold=3000
+KBUILD_CFLAGS	+= -mllvm -unroll-threshold=1200
 endif
 
 ifdef CONFIG_MINIMAL_TRACING_FOR_IORAP
