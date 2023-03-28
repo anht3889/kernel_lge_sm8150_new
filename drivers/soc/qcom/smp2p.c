@@ -285,11 +285,7 @@ static void qcom_smp2p_notify_in(struct qcom_smp2p *smp2p)
 			    (!(val & BIT(i)) && test_bit(i, entry->irq_falling))) {
 				irq_pin = irq_find_mapping(entry->domain, i);
 				handle_nested_irq(irq_pin);
-
-				if (test_bit(i, entry->irq_enabled))
 					clear_bit(i, entry->irq_pending);
-				else
-					set_bit(i, entry->irq_pending);
 			}
 		}
 	}
@@ -399,6 +395,7 @@ static struct irq_chip smp2p_irq_chip = {
 	.irq_mask       = smp2p_mask_irq,
 	.irq_unmask     = smp2p_unmask_irq,
 	.irq_set_type	= smp2p_set_irq_type,
+	.irq_retrigger	= smp2p_retrigger_irq,
 };
 
 static int smp2p_irq_map(struct irq_domain *d,
@@ -448,6 +445,8 @@ static int smp2p_update_bits(void *data, u32 mask, u32 value)
 	val |= value;
 	writel(val, entry->value);
 	spin_unlock_irqrestore(&entry->lock, flags);
+	SMP2P_INFO("%d: %s: orig:0x%0x new:0x%0x\n",
+		   entry->smp2p->remote_pid, entry->name, orig, val);
 
 	if (val != orig)
 		qcom_smp2p_kick(entry->smp2p);
@@ -814,4 +813,3 @@ module_platform_driver(qcom_smp2p_driver);
 
 MODULE_DESCRIPTION("Qualcomm Shared Memory Point to Point driver");
 MODULE_LICENSE("GPL v2");
-
