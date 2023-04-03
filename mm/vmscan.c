@@ -5685,9 +5685,6 @@ static bool allow_direct_reclaim(pg_data_t *pgdat, bool using_kswapd)
 
 		pfmemalloc_reserve += min_wmark_pages(zone);
 		free_pages += zone_page_state(zone, NR_FREE_PAGES);
-#ifdef CONFIG_MIGRATE_HIGHORDER
-		free_pages -= zone_page_state(zone, NR_FREE_HIGHORDER_PAGES);
-#endif
 	}
 
 	/* If there are no reserves (unexpected config) then do not throttle */

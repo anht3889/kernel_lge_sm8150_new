@@ -150,10 +150,6 @@ struct zram {
 #endif
 };
 
-#ifdef CONFIG_HSWAP
-extern int zram0_free_size(void);
-#endif
-
 static inline bool zram_dedup_enabled(struct zram *zram)
 {
 #ifdef CONFIG_ZRAM_DEDUP
